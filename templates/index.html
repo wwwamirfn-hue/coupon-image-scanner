@@ -1,0 +1,125 @@
+
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#5b36c9">
+<title>شکار کد تخفیف از عکس سایت</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f4fa;color:#211d2c;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif}
+main{max-width:760px;margin:0 auto;padding:22px 14px 40px}
+.hero{background:linear-gradient(135deg,#5b36c9,#8b5cf6);color:#fff;padding:22px;border-radius:22px}
+h1{font-size:24px;margin:0 0 8px}
+.hero p{line-height:1.8;margin:0}
+.panel{background:#fff;border-radius:18px;padding:18px;margin-top:15px;box-shadow:0 3px 18px #17102a0d}
+label{display:block;margin:12px 0 5px;font-weight:650}
+input{width:100%;padding:13px;border:1px solid #d5d2df;border-radius:12px;font:inherit}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{width:100%;padding:14px;border:0;border-radius:12px;background:#5b36c9;color:white;font:inherit;font-weight:700;margin-top:14px}
+button:disabled{opacity:.6}
+.status{margin-top:14px;line-height:1.8;font-weight:600}
+.result{border:1px solid #e5e1ed;padding:13px;border-radius:14px;margin:12px 0;overflow-wrap:anywhere}
+.code{font-size:22px;letter-spacing:1px;background:#fff3c4;border-radius:8px;padding:5px 9px;display:inline-block;direction:ltr}
+a{color:#5b36c9}
+.small{font-size:13px;color:#625d6d;line-height:1.8}
+footer{margin-top:12px}
+.results-title{margin-top:22px}
+</style>
+</head>
+<body>
+<main>
+<section class="hero">
+<h1>🔎 شکار کد تخفیف از تصاویر</h1>
+<p>آدرس سایت را بده؛ صفحات و عکس‌های قابل‌دسترسی همان دامنه بررسی می‌شوند و متن‌های شبیه کد تخفیف پیدا می‌شوند.</p>
+</section>
+<section class="panel">
+<form id="scanForm">
+<label for="url">آدرس سایت</label>
+<input id="url" type="url" placeholder="https://example.com" required>
+<div class="grid">
+<div>
+<label for="pages">حداکثر صفحه</label>
+<input id="pages" type="number" min="1" max="25" value="10">
+</div>
+<div>
+<label for="images">حداکثر تصویر</label>
+<input id="images" type="number" min="1" max="100" value="40">
+</div>
+</div>
+<button id="submit" type="submit">شروع اسکن تصاویر</button>
+</form>
+<div id="status" class="status"></div>
+<div id="results"></div>
+</section>
+<section class="panel small">
+<b>نکته:</b>
+این ابزار کدهای احتمالی را تشخیص می‌دهد، نه اعتبار کد یا درصد تخفیف آن‌ها. ممکن است متن اشتباه OCR شود. صفحات نیازمند ورود، کپچا، یا عکس‌های بارگذاری‌شده با روش‌های پیچیده ممکن است بررسی نشوند. فقط سایت‌هایی را اسکن کنید که اجازه دسترسی دارید؛ تعداد صفحه و تصویر را محدود نگه دارید.
+</section>
+<footer class="small">نسخه وب؛ برای استفاده از هر سایت باید این ابزار روی سرور میزبانی شود.</footer>
+</main>
+<script>
+const form=document.querySelector('#scanForm'), btn=document.querySelector('#submit'), statusBox=document.querySelector('#status'), results=document.querySelector('#results');
+form.addEventListener('submit',async e=>{
+ e.preventDefault();
+ btn.disabled=true;
+ btn.textContent='در حال اسکن…';
+ results.innerHTML='';
+ statusBox.textContent='در حال بررسی صفحات و خواندن تصاویر. این کار ممکن است کمی زمان ببرد.';
+ try{
+  const resp=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.querySelector('#url').value,pages:+document.querySelector('#pages').value,images:+document.querySelector('#images').value})});
+  const data=await resp.json();
+  if(!resp.ok)throw Error(data.error||'خطا در اسکن');
+  statusBox.textContent=`اسکن تمام شد: ${data.pages} صفحه و ${data.images} تصویر بررسی شد؛ ${data.results.length} کد احتمالی پیدا شد.`;
+  if(!data.results.length){
+   results.innerHTML='<p>کد قابل‌شناسایی پیدا نشد. ممکن است تصاویر فاقد کد باشند یا OCR متن را تشخیص نداده باشد.</p>';
+   return;
+  }
+  const heading=document.createElement('h3');
+  heading.className='results-title';
+  heading.textContent='کدهای احتمالی';
+  results.appendChild(heading);
+  data.results.forEach(x=>{
+   const card=document.createElement('div');
+   card.className='result';
+   const code=document.createElement('div');
+   code.className='code';
+   code.textContent=x.code;
+   card.appendChild(code);
+   const meta=document.createElement('p');
+   meta.className='small';
+   meta.textContent='نوع تشخیص: '+x.kind;
+   card.appendChild(meta);
+   const page=document.createElement('a');
+   page.href=x.page;
+   page.target='_blank';
+   page.rel='noopener';
+   page.textContent='صفحه منبع';
+   card.appendChild(page);
+   card.append(' · ');
+   const img=document.createElement('a');
+   img.href=x.image;
+   img.target='_blank';
+   img.rel='noopener';
+   img.textContent='بازکردن تصویر';
+   card.appendChild(img);
+   const raw=document.createElement('details');
+   raw.innerHTML='<summary>متن خوانده‌شده از تصویر</summary>';
+   const p=document.createElement('p');
+   p.className='small';
+   p.textContent=x.ocr;
+   raw.appendChild(p);
+   card.appendChild(raw);
+   results.appendChild(card);
+  });
+ }catch(err){
+  statusBox.textContent='مشکل: '+err.message;
+ }finally{
+  btn.disabled=false;
+  btn.textContent='شروع اسکن تصاویر';
+ }
+});
+</script>
+</body>
+</html>
